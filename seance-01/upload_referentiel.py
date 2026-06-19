@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import tempfile
 
 import boto3
 from botocore.client import Config
@@ -42,6 +43,7 @@ def upload_csv_files(s3_client):
     print(f"Upload des fichiers depuis {REFERENTIEL_DIR}...")
 
     for csv_file in csv_files:
+        line_count = count_lines(csv_file)
         object_key = f"referentiel/{csv_file.name}"
         s3_client.upload_file(
             str(csv_file),
@@ -49,7 +51,15 @@ def upload_csv_files(s3_client):
             object_key,
             ExtraArgs={"ContentType": "text/csv"},
         )
-        print(f"OK - {csv_file.name} -> s3://{BUCKET_NAME}/{object_key}")
+        print(
+            f"OK - {csv_file.name} ({line_count} lignes) "
+            f"-> s3://{BUCKET_NAME}/{object_key}"
+        )
+
+
+def count_lines(csv_file):
+    with csv_file.open("r", encoding="utf-8", errors="replace") as file:
+        return sum(1 for _ in file)
 
 
 def list_bucket_content(s3_client):
@@ -65,6 +75,18 @@ def list_bucket_content(s3_client):
         print(f"- {obj['Key']} ({obj['Size']} octets)")
 
 
+def download_and_show_sample(s3_client):
+    object_key = "referentiel/lignes.csv"
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        local_file = Path(temp_dir) / "lignes.csv"
+        s3_client.download_file(BUCKET_NAME, object_key, str(local_file))
+
+        print(f"\nFichier telecharge depuis MinIO : s3://{BUCKET_NAME}/{object_key}")
+        print("Contenu de lignes.csv :")
+        print(local_file.read_text(encoding="utf-8", errors="replace").strip())
+
+
 def main():
     s3_client = get_s3_client()
 
@@ -72,6 +94,7 @@ def main():
         check_bucket_access(s3_client)
         upload_csv_files(s3_client)
         list_bucket_content(s3_client)
+        download_and_show_sample(s3_client)
     except ClientError as error:
         code = error.response.get("Error", {}).get("Code", "Unknown")
         message = error.response.get("Error", {}).get("Message", str(error))

@@ -32,6 +32,12 @@ La capture ci-dessous montre le bucket `anfa-raw` avec les fichiers CSV du réf�
 
 Pas de blocage majeur. Le point le plus important était de bien distinguer les identifiants administrateur de MinIO et la clé applicative utilisée par le script Python. Il fallait aussi vérifier que Docker était bien accessible depuis l'environnement de travail.
 
+## Pour aller plus loin
+
+J'ai ajouté deux vérifications optionnelles dans `upload_referentiel.py`. Le script affiche maintenant le nombre de lignes de chaque CSV envoyé vers MinIO, ce qui donne un premier contrôle simple sur les fichiers uploadés. Il télécharge aussi `referentiel/lignes.csv` depuis MinIO avec `s3.download_file(...)` et affiche son contenu, pour vérifier que l'accès fonctionne aussi dans le sens inverse.
+
+Dans la console MinIO, la section **Identity** permet de voir la logique de séparation entre le compte administrateur et les clés applicatives. C'est important parce qu'un script ne devrait pas utiliser le compte root MinIO pour faire des opérations courantes.
+
 ## Exercices d'application
 
 ### Exercice 1 : QCM conceptuel
@@ -141,32 +147,34 @@ s3.upload_file("trajets.csv", "anfa-raw", "trajets.csv")
 
 **a. Deux limites de l'architecture actuelle**
 
-La première limite est que l'export CSV mensuel ne permet pas d'obtenir des prédictions presque en temps réel. La deuxième limite est que le PC du data scientist devient un point de blocage : il n'est pas adapté au partage, aux pics de calcul et à une exploitation régulière.
+La première limite est la fraîcheur des données. Avec un export CSV mensuel, les modèles travaillent sur des données déjà anciennes, alors que l'entreprise veut ajuster ses prédictions toutes les heures. Cela peut poser problème pour des produits frais, où la demande dépend vite du jour, de la météo, des ruptures de stock ou des périodes de forte commande.
+
+La deuxième limite est le fait de dépendre du PC du data scientist. Si le traitement tourne uniquement sur son ordinateur, il devient difficile de partager le travail, de garantir une exécution régulière et d'augmenter la capacité pendant les pics. Ce fonctionnement convient pour une expérimentation, mais pas pour un service data utilisé par toute l'entreprise.
 
 **b. Besoins et caractéristiques cloud du NIST**
 
 | Besoin | Caractéristique cloud | Explication |
 | --- | --- | --- |
-| Prédictions chaque heure | Libre-service à la demande | Les ressources peuvent être déclenchées ou provisionnées quand le traitement est nécessaire. |
-| Tableau de bord partagé sans installation locale | Accès réseau étendu | Les analystes peuvent accéder au tableau de bord depuis un navigateur. |
-| Augmenter la capacité lors des pics | Élasticité rapide | Le cloud permet d'ajouter de la capacité pendant les périodes chargées puis de la réduire ensuite. |
-| Maîtriser les coûts | Service mesuré | La consommation peut être suivie et facturée selon l'usage réel. |
-| Conserver les données clients dans un environnement contrôlé | Mutualisation des ressources | Les ressources cloud peuvent être mutualisées tout en restant isolées par des droits, des réseaux et des règles d'accès. |
+| Prédictions chaque heure | Libre-service à la demande | Les ressources de calcul peuvent être déclenchées automatiquement au moment prévu, sans attendre une intervention manuelle sur une machine locale. |
+| Tableau de bord partagé sans installation locale | Accès réseau étendu | Les analystes peuvent consulter le tableau de bord depuis un navigateur, avec un accès commun et centralisé. |
+| Augmenter la capacité lors des pics | Élasticité rapide | Le cloud permet d'ajouter temporairement de la capacité le vendredi soir ou pendant les fêtes, puis de revenir à une capacité normale. |
+| Maîtriser les coûts | Service mesuré | L'entreprise peut suivre la consommation réelle et éviter de payer en permanence une grosse machine utilisée seulement pendant les pics. |
+| Conserver les données clients dans un environnement contrôlé | Mutualisation des ressources | Les ressources peuvent être partagées au niveau fournisseur tout en restant isolées par des droits, des réseaux privés et des règles d'accès. |
 
 **c. Modèles de service proposés**
 
 | Composant | Modèle | Justification |
 | --- | --- | --- |
-| Tableau de bord partagé | SaaS | Un outil comme Tableau Online ou Power BI en ligne permet aux analystes de consulter les tableaux de bord sans installation locale. |
-| Calcul des prédictions à l'heure | FaaS | Une fonction planifiée peut lancer le calcul chaque heure sans laisser un serveur tourner en permanence. |
-| Stockage des données clients | PaaS | Une base de données ou un stockage managé permet de garder les données avec sauvegardes, droits d'accès et supervision. |
+| Tableau de bord partagé | SaaS | Un outil comme Tableau Online ou Power BI en ligne permet aux analystes de consulter les tableaux de bord sans installation locale et sans gérer l'infrastructure. |
+| Calcul des prédictions à l'heure | FaaS | Une fonction planifiée peut lancer le calcul chaque heure, ce qui évite de laisser un serveur tourner en permanence si le traitement reste court. |
+| Stockage des données clients | PaaS | Une base de données ou un stockage managé, placé dans un réseau contrôlé, permet de gérer les accès, les sauvegardes et la supervision plus proprement qu'un simple fichier local. |
 
 **d. Modèle de déploiement recommandé**
 
-Je recommande un cloud hybride. Les données clients sensibles peuvent rester dans un environnement privé ou fortement contrôlé, tandis que les traitements moins sensibles peuvent profiter de l'élasticité du cloud public pendant les pics.
+Je recommande un cloud hybride. Les données clients sensibles peuvent rester dans un environnement privé ou fortement contrôlé, avec des règles d'accès strictes. En parallèle, les traitements moins sensibles, les tableaux de bord ou certains calculs peuvent utiliser le cloud public pour profiter de l'élasticité lors des pics. Ce choix garde un équilibre entre conformité, capacité de calcul et maîtrise des coûts.
 
 **e. Trois stratégies pour limiter le vendor lock-in**
 
-1. Utiliser des formats de données ouverts comme CSV, Parquet ou JSON.
-2. Conteneuriser les traitements avec Docker pour faciliter le déplacement d'un environnement à un autre.
-3. S'appuyer sur des outils et protocoles standards, par exemple du stockage compatible S3 comme MinIO et de l'infrastructure as code avec Terraform.
+1. Utiliser des formats de données ouverts comme CSV, Parquet ou JSON afin de pouvoir relire les données ailleurs sans dépendre d'un format propriétaire.
+2. Conteneuriser les traitements avec Docker pour faciliter le déplacement d'un environnement d'exécution d'un fournisseur vers un autre.
+3. S'appuyer sur des standards et outils portables, par exemple du stockage compatible S3 comme MinIO, du SQL standard et de l'infrastructure as code avec Terraform.
