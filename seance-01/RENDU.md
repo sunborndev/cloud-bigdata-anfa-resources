@@ -30,11 +30,16 @@ La capture ci-dessous montre le bucket `anfa-raw` avec les fichiers CSV du réf�
 
 ## Difficultés rencontrées
 
-Pas de blocage majeur. Le point le plus important était de bien distinguer les identifiants administrateur de MinIO et la clé applicative utilisée par le script Python. Il fallait aussi vérifier que Docker était bien accessible depuis l'environnement de travail.
+Pas de blocage majeur. Le point le plus important était de vérifier que docker est installé et bien lancé. Nous avons également rencontré une erreur lors de l'activation de l'environnement virtuel Python sur Powershell (.venv\Scripts\Activate.ps1). Il faut utiliser dans ce cas une stratégie d'exécution Bypass.
 
 ## Pour aller plus loin
 
-J'ai ajouté deux vérifications optionnelles dans `upload_referentiel.py`. Le script affiche maintenant le nombre de lignes de chaque CSV envoyé vers MinIO, ce qui donne un premier contrôle simple sur les fichiers uploadés. Il télécharge aussi `referentiel/lignes.csv` depuis MinIO avec `s3.download_file(...)` et affiche son contenu, pour vérifier que l'accès fonctionne aussi dans le sens inverse.
+Nous avons réaliser les deux modifications suggérées dans `upload_referentiel.py`. 
+    - Nous avons ajouté la fonction `count_lines` qui compte et affiche le nombre de lignes de chaque CSV envoyé vers MinIO; ceci donne un premier contrôle simple sur les fichiers uploadés. 
+    - La seconde modification est la fonction `download_and_show_sample` qui télécharge le fichier `referentiel/lignes.csv` depuis MinIO avec `s3.download_file(...)` et affiche son contenu, pour vérifier que l'accès fonctionne aussi dans le sens inverse.
+    - Néanmoins nous n'avons pas trouvé la section `Identity` sur la console MinIO. Voir la capture ci-dessous.
+    ![Bucket MinIO anfa-raw](captures/optional-bucket-anfa-Identity-section-not-found.png)
+
 
 Dans la console MinIO, la section **Identity** permet de voir la logique de séparation entre le compte administrateur et les clés applicatives. C'est important parce qu'un script ne devrait pas utiliser le compte root MinIO pour faire des opérations courantes.
 
