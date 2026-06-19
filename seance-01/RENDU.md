@@ -30,15 +30,17 @@ La capture ci-dessous montre le bucket `anfa-raw` avec les fichiers CSV du réf�
 
 ## Difficultés rencontrées
 
-Pas de blocage majeur. Le point le plus important était de vérifier que docker est installé et bien lancé. Nous avons également rencontré une erreur lors de l'activation de l'environnement virtuel Python sur Powershell (.venv\Scripts\Activate.ps1). Il faut utiliser dans ce cas une stratégie d'exécution Bypass.
+Pas de blocage majeur. Le point le plus important était de vérifier que Docker est installé et bien lancé. Nous avons également rencontré une erreur lors de l'activation de l'environnement virtuel Python sur PowerShell (`.venv\Scripts\Activate.ps1`). Il faut utiliser dans ce cas une stratégie d'exécution `Bypass`.
 
 ## Pour aller plus loin
 
-Nous avons réaliser les deux modifications suggérées dans `upload_referentiel.py`. 
-    - Nous avons ajouté la fonction `count_lines` qui compte et affiche le nombre de lignes de chaque CSV envoyé vers MinIO; ceci donne un premier contrôle simple sur les fichiers uploadés. 
-    - La seconde modification est la fonction `download_and_show_sample` qui télécharge le fichier `referentiel/lignes.csv` depuis MinIO avec `s3.download_file(...)` et affiche son contenu, pour vérifier que l'accès fonctionne aussi dans le sens inverse.
-    - Néanmoins nous n'avons pas trouvé la section `Identity` sur la console MinIO. Voir la capture ci-dessous.
-    ![Bucket MinIO anfa-raw](captures/optional-bucket-anfa-Identity-section-not-found.png)
+Nous avons réalisé les deux modifications suggérées dans `upload_referentiel.py`.
+
+- Nous avons ajouté la fonction `count_lines`, qui compte et affiche le nombre de lignes de chaque CSV envoyé vers MinIO. Cela donne un premier contrôle simple sur les fichiers uploadés.
+- La seconde modification est la fonction `download_and_show_sample`, qui télécharge le fichier `referentiel/lignes.csv` depuis MinIO avec `s3.download_file(...)` et affiche son contenu, pour vérifier que l'accès fonctionne aussi dans le sens inverse.
+- Néanmoins, nous n'avons pas trouvé la section `Identity` sur la console MinIO. Voir la capture ci-dessous.
+
+![Section Identity non visible dans MinIO](captures/optional-bucket-anfa-Identity-section-not-found.png)
 
 
 Dans la console MinIO, la section **Identity** permet de voir la logique de séparation entre le compte administrateur et les clés applicatives. C'est important parce qu'un script ne devrait pas utiliser le compte root MinIO pour faire des opérations courantes.
@@ -176,7 +178,7 @@ La deuxième limite est le fait de dépendre du PC du data scientist. Si le trai
 
 **d. Modèle de déploiement recommandé**
 
-Je recommande un cloud hybride. Les données clients sensibles peuvent rester dans un environnement privé ou fortement contrôlé, avec des règles d'accès strictes. En parallèle, les traitements moins sensibles, les tableaux de bord ou certains calculs peuvent utiliser le cloud public pour profiter de l'élasticité lors des pics. Ce choix garde un équilibre entre conformité, capacité de calcul et maîtrise des coûts.
+Nous recommandons un cloud hybride. Les données clients sensibles peuvent rester dans un environnement privé ou fortement contrôlé, avec des règles d'accès strictes. En parallèle, les traitements moins sensibles, les tableaux de bord ou certains calculs peuvent utiliser le cloud public pour profiter de l'élasticité lors des pics. Ce choix garde un équilibre entre conformité, capacité de calcul et maîtrise des coûts.
 
 **e. Trois stratégies pour limiter le vendor lock-in**
 
