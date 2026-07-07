@@ -7,7 +7,7 @@ de 30 secondes et par ligne, et écrit les résultats dans MinIO.
 
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType, DoubleType, IntegerType
-from pyspark.sql.functions import col, from_json, window, count, avg, to_timestamp
+from pyspark.sql.functions import avg, col, count, from_json, regexp_replace, to_timestamp, window
 
 
 def creer_spark_session() -> SparkSession:
@@ -58,7 +58,13 @@ def main():
         flux_brut
         .select(from_json(col("value").cast("string"), schema_position).alias("data"))
         .select("data.*")
-        .withColumn("event_time", to_timestamp(col("timestamp")))
+        .withColumn(
+            "event_time",
+            to_timestamp(
+                regexp_replace(col("timestamp"), r"\+00:00$", "Z"),
+                "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+            ),
+        )
     )
 
     # ── Agrégation par fenêtre de 30 secondes et par ligne ──

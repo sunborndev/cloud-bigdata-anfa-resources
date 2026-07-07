@@ -32,7 +32,7 @@ for i in range(1, NB_BUS + 1):
     })
 
 producer = KafkaProducer(
-    bootstrap_servers=["localhost:19092", "localhost:19093", "localhost:19094"],
+    bootstrap_servers=["127.0.0.1:19092", "127.0.0.1:19093", "127.0.0.1:19094"],
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
     key_serializer=lambda k: k.encode("utf-8"),
 )

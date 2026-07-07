@@ -9,7 +9,7 @@ from kafka import KafkaConsumer
 
 consumer = KafkaConsumer(
     "anfa-positions-bus",
-    bootstrap_servers=["localhost:19092", "localhost:19093", "localhost:19094"],
+    bootstrap_servers=["127.0.0.1:19092", "127.0.0.1:19093", "127.0.0.1:19094"],
     value_deserializer=lambda v: json.loads(v.decode("utf-8")),
     auto_offset_reset="earliest",     # lire depuis le début du topic
     group_id="mon-premier-groupe",    # identifiant du consumer group
